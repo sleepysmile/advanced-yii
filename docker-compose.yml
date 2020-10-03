@@ -1,0 +1,57 @@
+version: "3"
+
+services:
+
+  app:
+    container_name: "${APP_NAME}_app"
+    build: docker/php
+    image: tyrellsys/docker-phpfpm
+    volumes:
+      - ./:/app
+      - ./docker/nginx/templates:/etc/nginx/templates
+    depends_on:
+      - db
+
+  nginx:
+    container_name: "${APP_NAME}_nginx"
+    image: nginx:1.19
+    environment:
+      - SERVER_NAME_FRONTEND=${FRONTEND_APP_URL}
+      - SERVER_NAME_BACKEND=${BACKEND_APP_URL}
+    volumes:
+      - ./:/app
+      - ./docker/nginx/templates:/etc/nginx/templates
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+
+  db:
+    container_name: "${APP_NAME}_db"
+    image: mysql:5.7
+    restart: always
+    user: 1000:1000
+    volumes:
+      - ./docker/db/config.cnf:/etc/mysql/conf.d/config.cnf
+      - ./docker/mysql/data:/var/lib/mysql
+    environment:
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: "{DB_ROOT_PASSWORD}"
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+
+  mailcatcher:
+    container_name: "${APP_NAME}_mailcatcher"
+    image: schickling/mailcatcher:latest
+    ports:
+      - 1080:1080
+
+  adminer:
+    container_name: "${APP_NAME}_adminer"
+    image: adminer
+    ports:
+      - 8080:8080
+    links:
+      - db
